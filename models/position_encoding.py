@@ -6,6 +6,55 @@ sys.path.append('..')
 from utils.misc import NestedTensor
 import numpy as np
 
+class PositionEmbeddingSine(nn.Layer):
+    '''
+        This is a standard version of the position embedding.
+        Similar to the Attention is all you need paper.
+    '''
+    def __init__(self, num_pos_feats=64, temperature=10000, normalize=False, scale=None):
+        super().__init__()
+        self.num_pos_feats = num_pos_feats
+        self.temperature   = temperature
+        self.normalize     = normalize
+        if scale is not None and normalize is False:
+            raise ValueError("normalize should be True if scale is passed")
+        if scale is None:
+            scale = 2 * math.pi
+        self.scale = scale        
+
+    def forward(self, tensor_list: NestedTensor):
+        '''
+            In each NestedTensor, mask's batchsize, height, weight should equal to tensor.
+            The mask is used to tell the model, which pixel is padding pixel.
+            So we define the mask tensor's element must be bool (Force by paddle).
+        '''
+        x    = tensor_list.tensors
+        mask = tensor_list.mask
+        assert mask is not None
+        not_mask = paddle.logical_not(mask)
+        y_embed  = paddle.cumsum(not_mask, axis=1, dtype='float32')
+        x_embed  = paddle.cumsum(not_mask, axis=2, dtype='float32')
+        if self.normalize:
+            eps = 1e-6
+            y_embed = y_embed / (y_embed[:, -1:, :] + eps) * self.scale
+            x_embed = x_embed / (x_embed[:, :, -1:] + eps) * self.scale
+
+        dim_t = paddle.arange(end=self.num_pos_feats, dtype='float32')
+        dim_t = self.temperature ** (2 * (dim_t // 2) / self.num_pos_feats)
+
+        pos_x = x_embed[:, :, :, None] / dim_t
+        pos_y = y_embed[:, :, :, None] / dim_t
+        pos_x = paddle.stack((paddle.sin(pos_x[:, :, :, 0::2]), paddle.cos(pos_x[:, :, :, 0::2])), axis=4)
+        pos_y = paddle.stack((paddle.sin(pos_y[:, :, :, 0::2]), paddle.cos(pos_y[:, :, :, 0::2])), axis=4)
+        pos_x = paddle.flatten(pos_x)
+        pos_y = paddle.flatten(pos_y)
+        pos   = paddle.concat((pos_y, pos_x), axis=3)
+        pos   = paddle.transpose(pos, perm=[0, 3, 1, 2])
+        return pos
+
+
+
+
 
 class PositionEmbeddingLearned(nn.Layer):
     '''
@@ -39,6 +88,7 @@ if __name__ == '__main__':
     position_embedding = PositionEmbeddingLearned(512)
     data = np.random.randn(4, 3, 64, 64)
     data = paddle.to_tensor(data)
+    # there is a test bug, because the mask's element must be boolen type 
     mask_data = np.random.randn(4, 1, 64, 64)
     mask_data = paddle.to_tensor(data)
     nested  = NestedTensor(data, mask_data)
