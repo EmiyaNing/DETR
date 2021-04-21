@@ -1,4 +1,5 @@
 import sys
+import math
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
@@ -40,14 +41,14 @@ class PositionEmbeddingSine(nn.Layer):
             x_embed = x_embed / (x_embed[:, :, -1:] + eps) * self.scale
 
         dim_t = paddle.arange(end=self.num_pos_feats, dtype='float32')
-        dim_t = self.temperature ** (2 * (dim_t // 2) / self.num_pos_feats)
+        dim_t = self.temperature ** (2 * (paddle.floor(dim_t / 2)) / self.num_pos_feats)
 
-        pos_x = x_embed[:, :, :, None] / dim_t
-        pos_y = y_embed[:, :, :, None] / dim_t
+        pos_x = paddle.unsqueeze(x_embed, axis=3) / dim_t
+        pos_y = paddle.unsqueeze(y_embed, axis=3) / dim_t
         pos_x = paddle.stack((paddle.sin(pos_x[:, :, :, 0::2]), paddle.cos(pos_x[:, :, :, 0::2])), axis=4)
         pos_y = paddle.stack((paddle.sin(pos_y[:, :, :, 0::2]), paddle.cos(pos_y[:, :, :, 0::2])), axis=4)
-        pos_x = paddle.flatten(pos_x)
-        pos_y = paddle.flatten(pos_y)
+        pos_x = paddle.flatten(pos_x,start_axis=3)
+        pos_y = paddle.flatten(pos_y,start_axis=3)
         pos   = paddle.concat((pos_y, pos_x), axis=3)
         pos   = paddle.transpose(pos, perm=[0, 3, 1, 2])
         return pos
