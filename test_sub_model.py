@@ -1,7 +1,11 @@
+import sys
 import paddle
 import numpy as np
 from models.position_encoding import PositionEmbeddingSine,PositionEmbeddingLearned
 from utils.misc import NestedTensor
+from models.detr import MLP
+sys.path.append('./models')
+sys.path.append('./utils')
 
 def test_PositionEmbeddingLearned():
     data = np.random.randn(1, 3, 4, 4).astype('float32')
@@ -23,7 +27,15 @@ def test_PositionEmbeddingSine():
     res  = position(nest)
     print(res.shape)
 
+def test_MLP():
+    data = np.random.randn(2, 32, 32)
+    data = paddle.to_tensor(data)
+    mlp  = MLP(32, 32, 32, 4)
+    res  = mlp(data)
+    print(res.shape)
+
 if __name__ == '__main__':
     #test_PositionEmbeddingLearned()
-    test_PositionEmbeddingSine()
+    #test_PositionEmbeddingSine()
+    test_MLP()
 

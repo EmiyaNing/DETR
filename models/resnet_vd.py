@@ -16,9 +16,6 @@ import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
 
-from paddleseg.cvlibs import manager
-from paddleseg.models import layers
-from paddleseg.utils import utils
 
 __all__ = [
     "ResNet18_vd", "ResNet34_vd", "ResNet50_vd", "ResNet101_vd", "ResNet152_vd"
@@ -324,11 +321,9 @@ class ResNet_vd(nn.Layer):
 
         return feat_list
 
-    def init_weight(self):
-        utils.load_pretrained_model(self, self.pretrained)
 
 
-@manager.BACKBONES.add_component
+
 def ResNet18_vd(**args):
     model = ResNet_vd(layers=18, **args)
     return model
@@ -339,13 +334,11 @@ def ResNet34_vd(**args):
     return model
 
 
-@manager.BACKBONES.add_component
 def ResNet50_vd(**args):
     model = ResNet_vd(layers=50, **args)
     return model
 
 
-@manager.BACKBONES.add_component
 def ResNet101_vd(**args):
     model = ResNet_vd(layers=101, **args)
     return model
