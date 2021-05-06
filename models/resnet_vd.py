@@ -2,6 +2,8 @@ import os
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
+# if the raise the import bug, we should use the absolute path replace the 
+from models.position_encoding import PositionEmbeddingSine
 from utils.misc import NestedTensor
 
 '''
@@ -371,33 +373,60 @@ class ResNet_vd(nn.Layer):
         return feat_list
 
 
+class Joiner(nn.Layer):
+    def __init__(self, backbone, position_encoding):
+        super().__init__()
+        self.backbone = backbone
+        self.position_encoding = position_encoding
 
+    def forward(self, tensor_list: NestedTensor):
+        xs  = self.backbone(tensor_list)
+        out: List[NestedTensor] = []
+        pos = []
+        for name, x in xs.items():
+            out.append(x)
+            temp = self.position_encoding(x)
+            temp = paddle.cast(temp, dtype='float32')
+            pos.append(temp)
+        return out, pos
 
 def ResNet18_vd(**args):
-    model = ResNet_vd(layers=18, **args)
+    backbone = ResNet_vd(layers=18, **args)
+    position = PositionEmbeddingSine(256)
+    model    = Joiner(backbone, position)
     return model
 
 
 def ResNet34_vd(**args):
-    model = ResNet_vd(layers=34, **args)
+    backbone = ResNet_vd(layers=34, **args)
+    position = PositionEmbeddingSine(256)
+    model    = Joiner(backbone, position)
     return model
 
 
 def ResNet50_vd(**args):
-    model = ResNet_vd(layers=50, **args)
+    backbone = ResNet_vd(layers=50, **args)
+    position = PositionEmbeddingSine(256)
+    model    = Joiner(backbone, position)
     return model
 
 
 def ResNet101_vd(**args):
-    model = ResNet_vd(layers=101, **args)
+    backbone = ResNet_vd(layers=101, **args)
+    position = PositionEmbeddingSine(256)
+    model    = Joiner(backbone, position)
     return model
 
 
 def ResNet152_vd(**args):
-    model = ResNet_vd(layers=152, **args)
+    backbone = ResNet_vd(layers=152, **args)
+    position = PositionEmbeddingSine(256)
+    model    = Joiner(backbone, position)
     return model
 
 
 def ResNet200_vd(**args):
-    model = ResNet_vd(layers=200, **args)
+    backbone = ResNet_vd(layers=200, **args)
+    position = PositionEmbeddingSine(256)
+    model    = Joiner(backbone, position)
     return model

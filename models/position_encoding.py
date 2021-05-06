@@ -85,6 +85,9 @@ class PositionEmbeddingLearned(nn.Layer):
         pos      = paddle.broadcast_to(temp_pos, [x.shape[0], temp_pos.shape[1], temp_pos.shape[2], temp_pos.shape[3]])
         return pos                                              # Now the pos should be n * (2num_pos_feats) * h * w
 
+
+
+
 if __name__ == '__main__':
     position_embedding = PositionEmbeddingLearned(512)
     data = np.random.randn(4, 3, 64, 64)

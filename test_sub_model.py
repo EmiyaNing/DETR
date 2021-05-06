@@ -7,8 +7,6 @@ from models.detr import MLP
 from models.resnet_vd import *
 
 
-sys.path.append('./models')
-sys.path.append('./utils')
 
 def test_PositionEmbeddingLearned():
     data = np.random.randn(1, 3, 4, 4).astype('float32')
@@ -51,8 +49,9 @@ def test_backbone():
     data2  = np.random.randn(3,64,64)
     data   = [paddle.to_tensor(data1), paddle.to_tensor(data2)]
     inputs   = nested_tensor_from_tensor_list(data)
-    result = resnet(inputs)
+    result,pos = resnet(inputs)
     print(result)  
+    print(pos)
 
 
 
