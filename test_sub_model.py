@@ -3,6 +3,7 @@ import paddle
 import numpy as np
 from models.position_encoding import PositionEmbeddingSine,PositionEmbeddingLearned
 from utils.misc import *
+from utils.box_ops import *
 from models.detr import MLP
 from models.resnet_vd import *
 
@@ -54,13 +55,26 @@ def test_backbone():
     print(result[-1].tensors.shape)
     #print(pos)
 
+def test_box_iou():
+    boxes1 = paddle.to_tensor(np.random.randn(8, 4))
+    boxes2 = paddle.to_tensor(np.random.randn(8, 4))
+    res, union = box_iou(boxes1, boxes2)
+    print(res)
+    print(union)
 
+def test_generalize_box_iou():
+    boxes1 = paddle.to_tensor(np.random.randn(8, 4))
+    boxes2 = paddle.to_tensor(np.random.randn(8, 4))
+    result = generalized_box_iou(boxes1, boxes2)
+    print(result)
 
 if __name__ == '__main__':
     #test_PositionEmbeddingLearned()
     #test_PositionEmbeddingSine()
     #test_MLP()
     #test_nested_tensor_from_tensor_list()
-    test_backbone()
+    #test_backbone()
+    #test_box_iou()
+    test_generalize_box_iou()
 
 

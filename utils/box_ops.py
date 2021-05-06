@@ -21,7 +21,7 @@ def box_area(boxes):
         Input tensor the last deminsion must be x1, y1, x2, y2
         return area(Tensor[N]): area for each box
     '''
-    return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 4])
+    return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
 
 
 def box_iou(boxes1, boxes2):
@@ -29,8 +29,8 @@ def box_iou(boxes1, boxes2):
     area2 = box_area(boxes2)
 
     boxes1 = paddle.unsqueeze(boxes1, axis=1)
-    lt = paddle.max(boxes1[:, :, :2], boxes[:, :2])
-    rb = paddle.min(boxes1[:, :, 2:], boxes2[:, 2:])
+    lt = paddle.maximum(boxes1[:, :, :2], boxes2[:, :2])
+    rb = paddle.minimum(boxes1[:, :, 2:], boxes2[:, 2:])
 
     temp_wh = rb - lt
     wh = paddle.nn.functional.relu(temp_wh)
@@ -47,9 +47,9 @@ def generalized_box_iou(boxes1, boxes2):
 
     iou, union = box_iou(boxes1, boxes2)
 
-    boxes1 = paddle.unsqueeze(boxes, axis=1)
-    lt = paddle.min(boxes1[:, :, :2], boxes2[:, :2])
-    rb = paddle.max(boxes1[:, :, 2:], boxes2[:, 2:])
+    boxes1 = paddle.unsqueeze(boxes1, axis=1)
+    lt = paddle.minimum(boxes1[:, :, :2], boxes2[:, :2])
+    rb = paddle.maximum(boxes1[:, :, 2:], boxes2[:, 2:])
 
     temp_wh = rb - lt
     wh      = paddle.nn.functional.relu(temp_wh)
