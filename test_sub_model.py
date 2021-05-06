@@ -50,8 +50,9 @@ def test_backbone():
     data   = [paddle.to_tensor(data1), paddle.to_tensor(data2)]
     inputs   = nested_tensor_from_tensor_list(data)
     result,pos = resnet(inputs)
-    print(result)  
-    print(pos)
+    print(result[-1].mask.shape)  
+    print(result[-1].tensors.shape)
+    #print(pos)
 
 
 

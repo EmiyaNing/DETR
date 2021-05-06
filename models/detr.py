@@ -15,9 +15,7 @@ class MLP(nn.Layer):
         super().__init__()
         self.num_layers = num_layers
         h = [hidden_dim] * (num_layers - 1)
-        self.layers = nn.LayerList()
-        for n, k in zip([input_dim] + h, h + [output_dim]):
-            self.layers.sublayers(nn.Linear(n, k))
+        self.layers = nn.LayerList(nn.Linear(n,k) for n,k in zip([input_dim] + h, h + [output_dim]))
             
 
     def forward(self,x):
@@ -45,7 +43,7 @@ class DETR(nn.Layer):
         self.class_embed = nn.Linear(hidden_dim, num_classes + 1)                           #output the classes possibility
         self.bbox_embed  = MLP(hidden_dim, hidden_dim, 4, 3)                                #output the bounding box paramaters(each position output 3 bounding box)
         self.query_embed = nn.Embedding(num_querys, hidden_dim)                             #position embedding
-        self.input_proj  = nn.Conv2D(backbone.num_channels, hidden_dim, kernel_size=1)      #input process.
+        self.input_proj  = nn.Conv2D(backbone.feat_channels[-1], hidden_dim, kernel_size=1)      #input process.
         self.backbone    = backbone
         self.aux_loss    = aux_loss
         
@@ -65,7 +63,6 @@ class DETR(nn.Layer):
         features, pos = self.backbone(samples)
 
         src, mask = features[-1].decompose()
-
         assert mask is not None
         hs = self.transformer(self.input_proj(src), mask, self.query_embed.weight, pos[-1])[0]
 
@@ -78,8 +75,8 @@ class DETR(nn.Layer):
             out['aux_outputs'] = self._set_aux_loss(output_class, output_coord)
         return out
 
-        def _set_aux_loss(self, output_class, output_coord):
-            return [{
-                'pred_logits':a, 'pred_boxes':b
-            } for a,b in zip(output_class[:-1], output_coord[:-1])]
+    def _set_aux_loss(self, output_class, output_coord):
+        return [{
+            'pred_logits':a, 'pred_boxes':b
+        } for a,b in zip(output_class[:-1], output_coord[:-1])]
 

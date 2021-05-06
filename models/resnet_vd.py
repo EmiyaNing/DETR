@@ -366,7 +366,7 @@ class ResNet_vd(nn.Layer):
                 y = block(y)
             m = paddle.unsqueeze(m, axis=0)
             mask = F.interpolate(paddle.cast(m, dtype='float'), size=y.shape[-2:], mode='nearest')[0]
-            mask = paddle.squeeze(m, axis=0)
+            mask = paddle.squeeze(mask, axis=0)
             mask = paddle.cast(mask, dtype='bool')
             feat_list['layer' + str(index)] = NestedTensor(y, mask)
 
@@ -378,6 +378,7 @@ class Joiner(nn.Layer):
         super().__init__()
         self.backbone = backbone
         self.position_encoding = position_encoding
+        self.feat_channels = backbone.feat_channels
 
     def forward(self, tensor_list: NestedTensor):
         xs  = self.backbone(tensor_list)
@@ -392,41 +393,41 @@ class Joiner(nn.Layer):
 
 def ResNet18_vd(**args):
     backbone = ResNet_vd(layers=18, **args)
-    position = PositionEmbeddingSine(256)
+    position = PositionEmbeddingSine(64)
     model    = Joiner(backbone, position)
     return model
 
 
 def ResNet34_vd(**args):
     backbone = ResNet_vd(layers=34, **args)
-    position = PositionEmbeddingSine(256)
+    position = PositionEmbeddingSine(64)
     model    = Joiner(backbone, position)
     return model
 
 
 def ResNet50_vd(**args):
     backbone = ResNet_vd(layers=50, **args)
-    position = PositionEmbeddingSine(256)
+    position = PositionEmbeddingSine(64)
     model    = Joiner(backbone, position)
     return model
 
 
 def ResNet101_vd(**args):
     backbone = ResNet_vd(layers=101, **args)
-    position = PositionEmbeddingSine(256)
+    position = PositionEmbeddingSine(64)
     model    = Joiner(backbone, position)
     return model
 
 
 def ResNet152_vd(**args):
     backbone = ResNet_vd(layers=152, **args)
-    position = PositionEmbeddingSine(256)
+    position = PositionEmbeddingSine(64)
     model    = Joiner(backbone, position)
     return model
 
 
 def ResNet200_vd(**args):
     backbone = ResNet_vd(layers=200, **args)
-    position = PositionEmbeddingSine(256)
+    position = PositionEmbeddingSine(64)
     model    = Joiner(backbone, position)
     return model

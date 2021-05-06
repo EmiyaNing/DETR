@@ -5,7 +5,10 @@ import numpy as np
 
 from models.transformer import *
 from models.position_encoding import *
-from utils.misc import NestedTensor
+from models.resnet_vd import *
+from models.detr import *
+from utils.misc import *
+
 
 def test_transformer_encoder_layer():
     layer = Transformer(128, 4, 4, 4, 512)
@@ -22,5 +25,18 @@ def test_transformer_encoder_layer():
     print(res[0].shape)
     print(res[1].shape)
 
+def test_DETR():
+    transformer = Transformer(128, 4, 4, 4, 256)
+    backbone    = ResNet18_vd()
+    detr        = DETR(backbone, transformer, 12, 256)
+    data1       = np.random.randn(3, 64, 64)
+    data2       = np.random.randn(3, 64, 64)
+    data3       = np.random.randn(3, 64, 64)
+    data_list   = [data1, data2, data3]
+    result      = detr(data_list)
+    print(result['pred_logits'].shape)
+    print(result['pred_boxes'].shape)
+
 if __name__ == '__main__':
-    test_transformer_encoder_layer()
+    #test_transformer_encoder_layer()
+    test_DETR()
