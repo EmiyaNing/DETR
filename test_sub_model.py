@@ -4,6 +4,9 @@ import numpy as np
 from models.position_encoding import PositionEmbeddingSine,PositionEmbeddingLearned
 from utils.misc import *
 from models.detr import MLP
+from models.resnet_vd import *
+
+
 sys.path.append('./models')
 sys.path.append('./utils')
 
@@ -40,7 +43,16 @@ def test_nested_tensor_from_tensor_list():
     data3 = np.random.randn(3, 64, 64)
     list  = [data1, data2, data3]
     result = nested_tensor_from_tensor_list(list)
-    print(result.mask)
+    print(result)
+
+def test_backbone():
+    resnet = ResNet18_vd()
+    data1  = np.random.randn(3,64,64)
+    data2  = np.random.randn(3,64,64)
+    data   = [paddle.to_tensor(data1), paddle.to_tensor(data2)]
+    inputs   = nested_tensor_from_tensor_list(data)
+    result = resnet(inputs)
+    print(result)  
 
 
 
@@ -48,6 +60,7 @@ if __name__ == '__main__':
     #test_PositionEmbeddingLearned()
     #test_PositionEmbeddingSine()
     #test_MLP()
-    test_nested_tensor_from_tensor_list()
+    #test_nested_tensor_from_tensor_list()
+    test_backbone()
 
 

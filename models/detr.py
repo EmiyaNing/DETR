@@ -3,7 +3,7 @@ import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
 
-from utils.misc import NestedTensor
+from utils.misc import *
 from models.resnet_vd import *
 from models.transformer import Transformer
 
@@ -60,4 +60,26 @@ class DETR(nn.Layer):
                 'pred_boxes' : The normalized boxes coordinates for all queries(center_x, center_y, height, width).
                 'aux_outputs': A list of dictionnaries containing the two above keys for each decoder layer. 
         '''
-        pass
+        if isinstance(samples, (list, paddle.Tensor)):
+            samples = nested_tensor_from_tensor_list(samples)
+        features, pos = self.backbone(samples)
+
+        src, mask = features[-1].decompose()
+
+        assert mask is not None
+        hs = self.transformer(self.input_proj(src), mask, self.query_embed.weight, pos[-1])[0]
+
+        output_class = self.class_embed(hs)
+        output_coord = F.sigmoid(self.bbox_embed(hs))
+
+        out          = {'pred_logits': output_class[-1], 'pred_boxes': output_coord[-1]}
+
+        if self.aux_loss:
+            out['aux_outputs'] = self._set_aux_loss(output_class, output_coord)
+        return out
+
+        def _set_aux_loss(self, output_class, output_coord):
+            return [{
+                'pred_logits':a, 'pred_boxes':b
+            } for a,b in zip(output_class[:-1], output_coord[:-1])]
+

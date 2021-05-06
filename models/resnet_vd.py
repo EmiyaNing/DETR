@@ -1,26 +1,69 @@
-# copyright (c) 2020 PaddlePaddle Authors. All Rights Reserve.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+import os
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
+from utils.misc import NestedTensor
 
+'''
+    The next step, we should fix this file.
+    To let the backbone network can process the neastedTensor type data.
+    Just use the neastedTensor.Tensor to preprocess asn use the neastedTensor.mask to interpolate....
+'''
 
-__all__ = [
-    "ResNet18_vd", "ResNet34_vd", "ResNet50_vd", "ResNet101_vd", "ResNet152_vd"
-]
+def SyncBatchNorm(*args, **kwargs):
+    if paddle.get_device() == 'cpu' or os.environ.get('PADDLESEG_EXPORT_STAGE'):
+        return nn.BatchNorm2D(*args, **kwargs)
+    else:
+        return nn.SyncBatchNorm(*args, **kwargs)
 
+class Activation(nn.Layer):
+    """
+    The wrapper of activations.
+    Args:
+        act (str, optional): The activation name in lowercase. It must be one of ['elu', 'gelu',
+            'hardshrink', 'tanh', 'hardtanh', 'prelu', 'relu', 'relu6', 'selu', 'leakyrelu', 'sigmoid',
+            'softmax', 'softplus', 'softshrink', 'softsign', 'tanhshrink', 'logsigmoid', 'logsoftmax',
+            'hsigmoid']. Default: None, means identical transformation.
+    Returns:
+        A callable object of Activation.
+    Raises:
+        KeyError: When parameter `act` is not in the optional range.
+    Examples:
+        from paddleseg.models.common.activation import Activation
+        relu = Activation("relu")
+        print(relu)
+        # <class 'paddle.nn.layer.activation.ReLU'>
+        sigmoid = Activation("sigmoid")
+        print(sigmoid)
+        # <class 'paddle.nn.layer.activation.Sigmoid'>
+        not_exit_one = Activation("not_exit_one")
+        # KeyError: "not_exit_one does not exist in the current dict_keys(['elu', 'gelu', 'hardshrink',
+        # 'tanh', 'hardtanh', 'prelu', 'relu', 'relu6', 'selu', 'leakyrelu', 'sigmoid', 'softmax',
+        # 'softplus', 'softshrink', 'softsign', 'tanhshrink', 'logsigmoid', 'logsoftmax', 'hsigmoid'])"
+    """
+
+    def __init__(self, act=None):
+        super(Activation, self).__init__()
+
+        self._act = act
+        upper_act_names = nn.layer.activation.__dict__.keys()
+        lower_act_names = [act.lower() for act in upper_act_names]
+        act_dict = dict(zip(lower_act_names, upper_act_names))
+
+        if act is not None:
+            if act in act_dict.keys():
+                act_name = act_dict[act]
+                self.act_func = eval(
+                    "nn.layer.activation.{}()".format(act_name))
+            else:
+                raise KeyError("{} does not exist in the current {}".format(
+                    act, act_dict.keys()))
+
+    def forward(self, x):
+        if self._act is not None:
+            return self.act_func(x)
+        else:
+            return x
 
 class ConvBNLayer(nn.Layer):
     def __init__(
@@ -49,8 +92,8 @@ class ConvBNLayer(nn.Layer):
             groups=groups,
             bias_attr=False)
 
-        self._batch_norm = layers.SyncBatchNorm(out_channels)
-        self._act_op = layers.Activation(act=act)
+        self._batch_norm = SyncBatchNorm(out_channels)
+        self._act_op = Activation(act=act)
 
     def forward(self, inputs):
         if self.is_vd_mode:
@@ -303,21 +346,27 @@ class ResNet_vd(nn.Layer):
                 self.stage_list.append(block_list)
 
         self.pretrained = pretrained
-        self.init_weight()
 
-    def forward(self, inputs):
-        y = self.conv1_1(inputs)
+    def forward(self, inputs: NestedTensor):
+        data = paddle.cast(inputs.tensors, dtype='float32')
+        y = self.conv1_1(data)
         y = self.conv1_2(y)
         y = self.conv1_3(y)
         self.conv1_logit = y.clone()
         y = self.pool2d_max(y)
 
         # A feature list saves the output feature map of each stage.
-        feat_list = []
-        for stage in self.stage_list:
+        #feat_list = []
+        feat_list: Dict[str, NestedTensor] = {}
+        for index,stage in enumerate(self.stage_list):
+            m = inputs.mask
             for block in stage:
                 y = block(y)
-            feat_list.append(y)
+            m = paddle.unsqueeze(m, axis=0)
+            mask = F.interpolate(paddle.cast(m, dtype='float'), size=y.shape[-2:], mode='nearest')[0]
+            mask = paddle.squeeze(m, axis=0)
+            mask = paddle.cast(mask, dtype='bool')
+            feat_list['layer' + str(index)] = NestedTensor(y, mask)
 
         return feat_list
 
