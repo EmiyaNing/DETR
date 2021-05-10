@@ -55,9 +55,9 @@ class HungarianMatcher(nn.Layer):
         temp_tgt   = tgt_bbox.numpy()
         cost_bbox  = paddle.to_tensor(cdist(temp_bbox, temp_tgt, p=1))
 
-        #cost_giou  = -generalized_box_iou(box_cxcywh_to_xyxy(out_bbox), box_cxcywh_to_xyxy(tgt_bbox))
-        #C          = self.cost_bbox * cost_bbox + self.cost_class * cost_class + self.cost_giou * cost_giou
-        C          = self.cost_bbox * cost_bbox + self.cost_class * cost_class
+        cost_giou  = -generalized_box_iou(box_cxcywh_to_xyxy(out_bbox), box_cxcywh_to_xyxy(tgt_bbox))
+        C          = self.cost_bbox * cost_bbox + self.cost_class * cost_class + self.cost_giou * cost_giou
+        #C          = self.cost_bbox * cost_bbox + self.cost_class * cost_class
         C          = paddle.reshape(C, shape=[bs, num_queries, C.shape[-1]])
         size       = [len(v['boxes']) for v in targets]
         indices   = []
